@@ -1,0 +1,33 @@
+plugins {
+	id 'java'
+}
+
+group = 'com.dotran.oms'
+version = project.findProperty("version") ?: "1.0.0"
+
+allprojects {
+	group = project.property('group')
+	version = project.property('version')
+
+	repositories {
+		mavenCentral()
+	}
+}
+
+subprojects {
+	apply plugin: 'java-library'
+
+	java {
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(17)
+		}
+	}
+
+	dependencies {
+		testImplementation 'org.junit.jupiter:junit-jupiter'
+	}
+
+	test {
+		useJUnitPlatform()
+	}
+}
