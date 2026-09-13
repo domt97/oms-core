@@ -4,11 +4,9 @@ plugins {
 }
 
 group = 'com.dotran.oms'
-version = project.findProperty("version") ?: "1.0.0"
 
 allprojects {
 	group = project.property('group')
-	version = project.property('version')
 
 	repositories {
 		mavenCentral()
@@ -39,9 +37,17 @@ subprojects {
 
 		testCompileOnly 'org.projectlombok:lombok'
 		testAnnotationProcessor 'org.projectlombok:lombok'
+
+		// Logging
+		compileOnly 'org.slf4j:slf4j-api'
 	}
 
 	test {
 		useJUnitPlatform()
 	}
+}
+
+// oms-core is only an aggregator
+tasks.named('jar') {
+	enabled = false
 }
