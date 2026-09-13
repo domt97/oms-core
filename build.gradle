@@ -1,5 +1,6 @@
 plugins {
 	id 'java'
+	id 'maven-publish'
 	id 'io.spring.dependency-management' version '1.1.4' apply false
 }
 
@@ -15,7 +16,16 @@ allprojects {
 
 subprojects {
 	apply plugin: 'java-library'
+	apply plugin: 'maven-publish'
 	apply plugin: 'io.spring.dependency-management'
+
+	publishing {
+		publications {
+			mavenJava(MavenPublication) {
+				from components.java
+			}
+		}
+	}
 
 	java {
 		toolchain {
