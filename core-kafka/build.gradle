@@ -11,6 +11,17 @@ repositories {
 
 dependencies {
     api project(':core-common')
+
+    // Spring
+    implementation 'org.springframework.boot:spring-boot-autoconfigure'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // JSON
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
 }
 
 test {
