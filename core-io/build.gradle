@@ -18,7 +18,7 @@ dependencies {
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
     // Apache
-    implementation 'org.apache.poi:poi-ooxml:5.4.1'
+    api 'org.apache.poi:poi-ooxml:5.4.1'
 }
 
 test {

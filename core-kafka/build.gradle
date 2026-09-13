@@ -18,7 +18,7 @@ dependencies {
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
     // Kafka
-    implementation 'org.springframework.kafka:spring-kafka'
+    api 'org.springframework.kafka:spring-kafka'
 
     // JSON
     implementation 'com.fasterxml.jackson.core:jackson-databind'

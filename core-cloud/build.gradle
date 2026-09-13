@@ -18,10 +18,10 @@ dependencies {
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
     // AWS
-    implementation platform("software.amazon.awssdk:bom:2.31.76")
-    implementation 'software.amazon.awssdk:s3'
-    implementation "software.amazon.awssdk:dynamodb"
-    implementation "software.amazon.awssdk:dynamodb-enhanced"
+    api platform("software.amazon.awssdk:bom:2.31.76")
+    api 'software.amazon.awssdk:s3'
+    api "software.amazon.awssdk:dynamodb"
+    api "software.amazon.awssdk:dynamodb-enhanced"
 }
 
 test {
