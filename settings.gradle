@@ -1,7 +1,1 @@
 rootProject.name = 'oms-core'
-
-include 'core-common'
-include 'core-web'
-include 'core-kafka'
-include 'core-cloud'
-include 'core-io'

@@ -1,63 +1,68 @@
 plugins {
-	id 'java'
-	id 'maven-publish'
-	id 'io.spring.dependency-management' version '1.1.4' apply false
+	id 'java-library'
+	id 'io.spring.dependency-management' version '1.1.4'
 }
 
 group = 'com.dotran.oms'
+version = project.findProperty("version")
 
-allprojects {
-	group = project.property('group')
-
-	repositories {
-		mavenCentral()
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
 	}
 }
 
-subprojects {
-	apply plugin: 'java-library'
-	apply plugin: 'maven-publish'
-	apply plugin: 'io.spring.dependency-management'
+repositories {
+	mavenCentral()
+}
 
-	publishing {
-		publications {
-			mavenJava(MavenPublication) {
-				from components.java
-			}
-		}
-	}
-
-	java {
-		toolchain {
-			languageVersion = JavaLanguageVersion.of(17)
-		}
-	}
-
-	dependencyManagement {
-		imports {
-			mavenBom "org.springframework.boot:spring-boot-dependencies:3.2.3"
-		}
-	}
-
-	dependencies {
-
-		// Lombok
-		compileOnly 'org.projectlombok:lombok'
-		annotationProcessor 'org.projectlombok:lombok'
-
-		testCompileOnly 'org.projectlombok:lombok'
-		testAnnotationProcessor 'org.projectlombok:lombok'
-
-		// Logging
-		compileOnly 'org.slf4j:slf4j-api'
-	}
-
-	test {
-		useJUnitPlatform()
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.boot:spring-boot-dependencies:3.2.3"
 	}
 }
 
-// oms-core is only an aggregator
-tasks.named('jar') {
-	enabled = false
+dependencies {
+
+	api 'org.apache.commons:commons-lang3:3.18.0'
+
+	// Spring
+	compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
+	implementation 'org.springframework:spring-web'
+	implementation 'org.springframework:spring-webmvc'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+	// MapStruct
+	implementation 'org.mapstruct:mapstruct:1.6.3'
+
+	// Lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+
+	// AWS
+	implementation platform("software.amazon.awssdk:bom:2.31.76")
+	implementation 'software.amazon.awssdk:s3'
+	implementation 'software.amazon.awssdk:dynamodb'
+	implementation 'software.amazon.awssdk:dynamodb-enhanced'
+
+	// Apache
+	api 'org.apache.poi:poi-ooxml:5.4.1'
+
+	// Swagger
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0") {
+		exclude group: "org.apache.commons", module: "commons-lang3"
+	}
+
+	implementation 'jakarta.servlet:jakarta.servlet-api'
+	compileOnly 'jakarta.annotation:jakarta.annotation-api'
+
+	// Tests
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+	useJUnitPlatform()
 }
