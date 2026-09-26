@@ -1,7 +1,7 @@
 package com.dotran.oms.core.config;
 
-import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 
-@AutoConfiguration
+@EnableAutoConfiguration
 public class CoreConfiguration {
 }
