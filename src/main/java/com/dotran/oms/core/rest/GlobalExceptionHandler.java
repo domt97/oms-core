@@ -103,7 +103,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(errorDTO, HttpStatus.BAD_REQUEST);
     }
 
-    private void logError(Exception ex) {
+    protected void logError(Exception ex) {
         log.error("Exception: {}", ex.getMessage(), ex);
     }
 }
