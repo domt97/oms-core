@@ -10,13 +10,11 @@ import com.dotran.oms.core.domain.id.ReferenceId;
 import com.dotran.oms.core.domain.id.SKU;
 import com.dotran.oms.core.domain.id.StoreId;
 import com.dotran.oms.core.domain.id.TenantId;
-import org.mapstruct.Mapper;
 import org.mapstruct.Named;
 
 import java.util.List;
 import java.util.UUID;
 
-@Mapper(componentModel = "spring")
 public interface IdMapper {
 
     @Named("toStoreId")
