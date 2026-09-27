@@ -3,6 +3,16 @@
 profile=localdev
 region=eu-west-1
 
+declare -a buckets=(
+		${profile}-store-products
+	)
+
+echo "Creating S3 Buckets ..."
+for bucket in "${buckets[@]}"
+do
+	aws --endpoint-url=http://localhost:4566 s3 mb s3://$bucket
+done
+
 echo "Creating DynamoDB table: ${profile}_tenant_info..."
 
 aws dynamodb create-table \
