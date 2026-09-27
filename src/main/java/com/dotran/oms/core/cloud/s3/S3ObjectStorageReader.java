@@ -3,6 +3,7 @@ package com.dotran.oms.core.cloud.s3;
 import com.dotran.oms.core.exception.AWSException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
@@ -12,6 +13,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.InputStream;
 
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class S3ObjectStorageReader {

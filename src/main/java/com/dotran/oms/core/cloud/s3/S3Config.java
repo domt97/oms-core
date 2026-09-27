@@ -1,5 +1,6 @@
 package com.dotran.oms.core.cloud.s3;
 
+import com.dotran.oms.core.cloud.config.AwsProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -22,7 +23,7 @@ public class S3Config {
     private Environment environment;
 
     @Autowired
-    private S3Properties s3Properties;
+    private AwsProperties awsProperties;
 
     @Bean
     public S3Client s3Client() {
@@ -30,8 +31,8 @@ public class S3Config {
         if (environment.matchesProfiles(LOCALDEV)) {
             log.info("Init s3Client() for localdev env");
             return S3Client.builder()
-                    .endpointOverride(URI.create(s3Properties.getEndpoint()))
-                    .region(Region.of(s3Properties.getRegion()))
+                    .endpointOverride(URI.create(awsProperties.getEndpoint()))
+                    .region(Region.of(awsProperties.getRegion()))
                     .credentialsProvider(
                             StaticCredentialsProvider.create(
                                     AwsBasicCredentials.create("test", "test")
@@ -43,24 +44,24 @@ public class S3Config {
 
         // AWS
         var clientBuilder = S3Client.builder()
-                .region(Region.of(s3Properties.getRegion()));
+                .region(Region.of(awsProperties.getRegion()));
 
         // Optional endpoint override
-        if (s3Properties.getEndpoint() != null && !s3Properties.getEndpoint().isEmpty()) {
-            clientBuilder.endpointOverride(URI.create(s3Properties.getEndpoint()));
+        if (awsProperties.getEndpoint() != null && !awsProperties.getEndpoint().isEmpty()) {
+            clientBuilder.endpointOverride(URI.create(awsProperties.getEndpoint()));
         }
 
         // Optional static credentials
-        if (s3Properties.getAccessKey() != null
-                && !s3Properties.getAccessKey().isEmpty()
-                && s3Properties.getSecretKey() != null
-                && !s3Properties.getSecretKey().isEmpty()) {
+        if (awsProperties.getAccessKey() != null
+                && !awsProperties.getAccessKey().isEmpty()
+                && awsProperties.getSecretKey() != null
+                && !awsProperties.getSecretKey().isEmpty()) {
 
             clientBuilder.credentialsProvider(
                     StaticCredentialsProvider.create(
                             AwsBasicCredentials.create(
-                                    s3Properties.getAccessKey(),
-                                    s3Properties.getSecretKey()
+                                    awsProperties.getAccessKey(),
+                                    awsProperties.getSecretKey()
                             )
                     )
             );
