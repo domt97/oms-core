@@ -37,8 +37,8 @@ public class DynamoDbConfig {
     @Value("${aws.dynamodb.secret-key:}")
     private String secretKey;
 
-    @Value("${aws.dynamodb.table.tenant-info:localdev_tenant_info}")
-    private String tenantInfoTableName;
+    @Value("${aws.dynamodb.table.merchant-info:localdev_merchant_info}")
+    private String merchantInfoTableName;
 
     @Bean
     public DynamoDbClient dynamoDbClient() {
@@ -82,7 +82,7 @@ public class DynamoDbConfig {
     }
 
     @Bean
-    public DynamoDbTable<TenantInfoItem> tenantInfoTable(DynamoDbEnhancedClient enhancedClient) {
-        return enhancedClient.table(tenantInfoTableName, TableSchema.fromBean(TenantInfoItem.class));
+    public DynamoDbTable<MerchantInfoItem> merchantInfoTable(DynamoDbEnhancedClient enhancedClient) {
+        return enhancedClient.table(merchantInfoTableName, TableSchema.fromBean(MerchantInfoItem.class));
     }
 }

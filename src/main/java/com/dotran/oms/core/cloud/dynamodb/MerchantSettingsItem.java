@@ -9,7 +9,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 @Getter
 @NoArgsConstructor
 @DynamoDbBean
-public class TenantSettingsItem {
+public class MerchantSettingsItem {
 
     private String timeZone;
 

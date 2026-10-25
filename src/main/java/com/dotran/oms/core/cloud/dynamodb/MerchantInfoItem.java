@@ -13,7 +13,7 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor
 @DynamoDbBean
-public class TenantInfoItem {
+public class MerchantInfoItem {
 
     private UUID pk;
 
@@ -23,7 +23,7 @@ public class TenantInfoItem {
 
     private String status;
 
-    private TenantSettingsItem settings;
+    private MerchantSettingsItem settings;
 
     private Instant createdAt;
 
