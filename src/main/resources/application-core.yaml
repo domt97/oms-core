@@ -19,4 +19,4 @@ aws:
 
   dynamodb:
     table:
-      tenant-info: ${AWS_DYNAMODB_TABLE:tenant_info}
+      merchant-info: ${AWS_DYNAMODB_TABLE:merchant_info}

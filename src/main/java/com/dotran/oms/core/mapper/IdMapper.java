@@ -9,7 +9,7 @@ import com.dotran.oms.core.domain.id.ProductId;
 import com.dotran.oms.core.domain.id.ReferenceId;
 import com.dotran.oms.core.domain.id.SKU;
 import com.dotran.oms.core.domain.id.StoreId;
-import com.dotran.oms.core.domain.id.TenantId;
+import com.dotran.oms.core.domain.id.MerchantId;
 import org.mapstruct.Named;
 
 import java.util.List;
@@ -43,9 +43,9 @@ public interface IdMapper {
         return id == null ? null : new CategoryId(id);
     }
 
-    @Named("toTenantId")
-    default TenantId toTenantId(UUID id) {
-        return id == null ? null : new TenantId(id);
+    @Named("toMerchantId")
+    default MerchantId toMerchantId(UUID id) {
+        return id == null ? null : new MerchantId(id);
     }
 
     @Named("toCustomerId")
