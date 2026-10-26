@@ -16,7 +16,3 @@ aws:
   endpoint: ${AWS_ENDPOINT:http://localhost:4566}
   access-key: ${AWS_ACCESS_KEY:test}
   secret-key: ${AWS_SECRET_KEY:test}
-
-  dynamodb:
-    table:
-      merchant-info: ${AWS_DYNAMODB_TABLE:merchant_info}

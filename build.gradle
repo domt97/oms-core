@@ -44,8 +44,6 @@ dependencies {
 	// AWS
 	implementation platform("software.amazon.awssdk:bom:2.31.76")
 	implementation 'software.amazon.awssdk:s3'
-	implementation 'software.amazon.awssdk:dynamodb'
-	implementation 'software.amazon.awssdk:dynamodb-enhanced'
 
 	// Apache
 	api 'org.apache.poi:poi-ooxml:5.4.1'
