@@ -1,5 +1,6 @@
 package com.dotran.oms.core.rest.logging;
 
+import com.dotran.oms.core.logging.LogSanitizer;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -89,11 +90,11 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
         if (headerName == null) return value;
         if (value == null) return null;
         if (sensitiveHeadersLower != null && sensitiveHeadersLower.contains(headerName.toLowerCase())) return "[REDACTED]";
-        return value;
+        return LogSanitizer.escape(value);
     }
 
     private String buildRedactedRequestUri(HttpServletRequest request) {
-        String uri = request.getRequestURI();
+        String uri = LogSanitizer.escape(request.getRequestURI());
         Map<String, String[]> params = request.getParameterMap();
         if (params == null || params.isEmpty()) return uri;
         StringBuilder sb = new StringBuilder(uri).append("?");
@@ -106,10 +107,11 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                 if (sensitiveQueryParamsLower != null && sensitiveQueryParamsLower.contains(name.toLowerCase())) {
                     valueStr = "[REDACTED]";
                 } else {
-                    valueStr = String.join(",", values);
+                    valueStr = LogSanitizer.escape(String.join(",", values));
                 }
             }
-            joiner.add(name + "=" + valueStr);
+            // Names and values are URL-decoded: escape both so "?a%0d%0aFAKE=1" cannot forge a log line.
+            joiner.add(LogSanitizer.escape(name) + "=" + valueStr);
         }
         sb.append(joiner.toString());
         return sb.toString();

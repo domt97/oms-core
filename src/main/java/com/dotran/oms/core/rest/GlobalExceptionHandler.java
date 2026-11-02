@@ -1,5 +1,6 @@
 package com.dotran.oms.core.rest;
 
+import com.dotran.oms.core.logging.LogSanitizer;
 import com.dotran.oms.core.exception.BusinessException;
 import com.dotran.oms.core.exception.NotFoundException;
 import com.dotran.oms.core.exception.ValidationException;
@@ -104,6 +105,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     protected void logError(Exception ex) {
-        log.error("Exception: {}", ex.getMessage(), ex);
+        // The message can echo user input (e.g. rejected body values): the message argument is escaped. The stack trace
+        // below still prints the raw message (open question 47: 4xx without stack trace).
+        log.error("Exception: {}", LogSanitizer.escape(ex.getMessage()), ex);
     }
 }
