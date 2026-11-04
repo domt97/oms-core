@@ -21,19 +21,31 @@ Architecture and rules: [oms-workspace](https://github.com/domt97/oms-workspace)
 
 ## Releasing
 
-Only the repository owner creates tags; a published version can never be changed.
+Releases are continuous: **the version in `gradle.properties` is the version `master` releases.**
 
-1. Merge the change into `master` (CI green).
-2. Tag the commit on `master` and push the tag: `git tag v1.2.0 && git push origin v1.2.0`.
-3. `release.yml` checks the tag, runs the tests and publishes `1.2.0`. Wait until it is green.
-4. In each service that needs the change: bump `coreVersion=1.2.0` in a PR into `develop`.
+1. In the PR that should produce a release, bump `version` (semver, below), e.g. `1.1.0` → `1.2.0`. The PR's
+   `release-version` check says what merging will release, warns when code changes without a bump, and fails for a
+   version that is already released or lower than the current one.
+2. Merge into `master`. `publish.yml` runs: if there is no tag `v1.2.0` yet it tests, publishes `1.2.0` to GitHub
+   Packages and then creates the tag `v1.2.0` with a GitHub Release (the tag comes last: a tag means fully released).
+   Nothing to type; a merge without a bump releases nothing.
+3. In each service that needs the change: bump `coreVersion=1.2.0` in a PR into `develop`.
 
-**Pre-release for a cross-repo change** (service PR needs an unmerged oms-core change): tag the oms-core branch
-`v1.2.0-rc.1`, pin it in the service PR to get CI feedback (the service's `core-pin` check stays red: an rc is never
-merged), then release `v1.2.0` from `master` and pin that. An rc is published from unreviewed branch code and never
-goes away; use it only for branches with an open PR.
+If a Publish run fails, **re-run that run** (it keeps its commit). If the version is already completely on GitHub Packages
+(only the tag step failed), the re-run just creates the missing tag, on the commit recorded in the POM (`oms.commit`).
+Runs go one at a time and GitHub keeps only the newest waiting run: after quick merges a run can show "cancelled"; the
+next run releases whatever version `master` then has, so if two merges bumped twice, the skipped number is simply never
+released. A tag `vX.Y.Z` is only ever created by `publish.yml`; a released tag whose package is missing fails the run.
+`publish.yml` runs only for `master`, also when started by hand. A published version can never be changed.
 
-`publish` refuses to run outside `release.yml` or for a non-release version.
+**Pre-release for a cross-repo change** (service PR needs an unmerged oms-core change): the repository owner tags the
+oms-core branch `v1.2.0-rc.1` (`git tag v1.2.0-rc.1 && git push origin v1.2.0-rc.1`; `release.yml` publishes it), pins it
+in the service PR to get CI feedback (the service's `core-pin` check stays red: an rc is never merged), then merges oms-core
+with `version=1.2.0` (published by `publish.yml`) and pins that. An rc is published from unreviewed branch code and never
+goes away; use it only for branches with an open PR. `release.yml` ignores rc tags pushed by anyone but the
+repository owner and refuses an rc for a version that is already released.
+
+`publish` refuses to run outside these workflows or for a non-release version.
 
 ### Versioning (semver)
 
@@ -47,9 +59,10 @@ oms-core has one line of development (`master`); there are no backport branches.
 
 ### A release that failed half-way
 
-If the publish step failed after some files were uploaded, the version is broken and cannot be re-published (409).
-Delete that version in the repository's **Packages** page (allowed for public packages with few downloads), or tag the
-next patch. Never move or re-use a tag. If a service build still says the version cannot be found after the release
+If the publish step failed after some files were uploaded, the version is broken and cannot be re-published (409);
+`publish.yml` then fails and names the missing file instead of tagging it.
+Delete that version in the repository's **Packages** page (allowed for public packages with few downloads), or bump
+`version` to the next patch. Never move or re-use a tag. If a service build still says the version cannot be found after the release
 is green, re-run it with `--refresh-dependencies` (Gradle may have cached the miss).
 
 ## Build
