@@ -1,5 +1,9 @@
-name: Delete merged feature branches
+name: Delete merged branches
 
+# Same behaviour as the other OMS repos: once a PR is merged,
+# delete its head branch (except protected ones). Local copies are cleaned by
+# oms-workspace scripts/sync-repos.sh. Any merged branch goes (feat/, fix/, ci/, docs/...): a stale branch would
+# otherwise be picked up by the services' CI as a same-named oms-core branch.
 on:
   pull_request:
     types:
@@ -15,46 +19,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Delete merged feature branch
+      - name: Delete merged branch
         uses: actions/github-script@v7
         with:
           script: |
-            const head = context.payload.pull_request.head.ref;
+            const pr = context.payload.pull_request;
+            const head = pr.head.ref;
 
-            // List of protected branches that should not be deleted
-            const protectedBranches = [
-              "main",
-              "master",
-              "develop"
-            ];
+            // Only branches of this repository (never a fork's branch)
+            if (pr.head.repo.full_name !== pr.base.repo.full_name) {
+              console.log(`Skip branch from another repository: ${pr.head.repo.full_name}`);
+              return;
+            }
 
-            if (protectedBranches.includes(head)) {
+            // Protected branches that must never be deleted
+            const protectedBranches = ["main", "master", "develop"];
+            if (protectedBranches.includes(head) || head.startsWith("release/")) {
               console.log(`Skip protected branch: ${head}`);
               return;
             }
 
-            if (head.startsWith("release/")) {
-              console.log(`Skip release branch: ${head}`);
-              return;
+            try {
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `heads/${head}`
+              });
+              console.log(`Deleted ${head}`);
+            } catch (e) {
+              // 422 = already deleted (e.g. by GitHub's auto-delete setting)
+              if (e.status === 422) {
+                console.log(`Branch ${head} already deleted`);
+              } else {
+                throw e;
+              }
             }
-
-            const deletablePrefixes = [
-              "feature/",
-              "bugfix/",
-              "hotfix/"
-            ];
-
-            const shouldDelete = deletablePrefixes.some(p => head.startsWith(p));
-
-            if (!shouldDelete) {
-              console.log(`Skip branch: ${head}`);
-              return;
-            }
-
-            await github.rest.git.deleteRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: `heads/${head}`
-            });
-
-            console.log(`Deleted ${head}`);
