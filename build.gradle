@@ -26,6 +26,9 @@ dependencies {
 
 	api 'org.apache.commons:commons-lang3:3.18.0'
 
+	// JSON for the correlation header (MdcPropagation); version from the Boot BOM
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+
 	// Spring
 	compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
 	implementation 'org.springframework:spring-web'

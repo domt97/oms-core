@@ -48,10 +48,14 @@ public class MdcProperties {
     public static final int MAX_PATTERN_VALUE_LENGTH = 64;
 
     /**
-     * Keys written by oms-core or the messaging code, never from a request value: they may appear here only to set
-     * {@code propagate}, with no sources. {@code eventId} is the cross-service join key, so a caller must not set it.
+     * Keys written by oms-core or the messaging code, never from a request value: they take no sources.
+     * {@code eventId} is the cross-service join key, so a caller must not set it.
      */
     public static final Set<String> RESERVED_KEYS = Set.of(MdcKeys.REQUEST_ID, MdcKeys.EVENT_ID, MdcKeys.KAFKA_TOPIC,
+            MdcKeys.KAFKA_PARTITION, MdcKeys.KAFKA_OFFSET, MdcKeys.SQS_MESSAGE_ID);
+
+    /** Reserved keys the message code owns: never propagated, never restored from a header. */
+    public static final Set<String> MESSAGE_KEYS = Set.of(MdcKeys.EVENT_ID, MdcKeys.KAFKA_TOPIC,
             MdcKeys.KAFKA_PARTITION, MdcKeys.KAFKA_OFFSET, MdcKeys.SQS_MESSAGE_ID);
 
     private static final Pattern KEY_NAME = Pattern.compile("^[a-zA-Z][A-Za-z0-9]{0,40}$");
@@ -89,9 +93,11 @@ public class MdcProperties {
         private String pattern;
         private Set<Source> sources = EnumSet.of(Source.PATH);
         /**
-         * Marks a key that may be carried to other services (outbox → Kafka header, outbound HTTP). Only the
-         * marking exists today; the transport is a follow-up (oms-workspace open question 46). Propagate correlation
-         * keys only, not entity ids an event payload already carries.
+         * Carries the key to other services: stores-service writes it to the outbox row ({@code correlation_context}),
+         * Debezium puts it in the Kafka header {@code correlationContext}, consumers restore it ({@link MdcPropagation}).
+         * Correlation keys only ({@code requestId}, later e.g. a trace id), set in code and taken from no request
+         * source: an entity or tenant id (merchantId, storeId, ...) fails startup, since a forged header could then put
+         * an unchecked tenant id in the consumer's logs. Event payloads carry entity ids themselves.
          */
         private boolean propagate;
 
@@ -168,6 +174,10 @@ public class MdcProperties {
                 throw invalid(key, "is written by oms-core or the message listeners, never from a request; "
                         + "set 'sources: []' (only 'propagate' may be configured)");
             }
+            if (field.isPropagate() && (MESSAGE_KEYS.contains(key) || !field.getSources().isEmpty())) {
+                throw invalid(key, "only correlation keys may propagate (e.g. requestId): not message keys, and not "
+                        + "keys taken from a request (entity or tenant ids such as merchantId); a key set in code needs 'sources: []'");
+            }
         });
         RESERVED_KEYS.forEach(reserved -> {
             String sameIgnoringCase = lowerCaseKeys.get(reserved.toLowerCase(java.util.Locale.ROOT));
@@ -194,7 +204,7 @@ public class MdcProperties {
         return Collections.unmodifiableMap(result);
     }
 
-    /** Keys marked {@code propagate: true} (transport is a follow-up). */
+    /** Keys marked {@code propagate: true}: carried across services by {@link MdcPropagation}. */
     public Set<String> propagatedKeys() {
         Set<String> keys = new TreeSet<>();
         fields.forEach((key, field) -> {
