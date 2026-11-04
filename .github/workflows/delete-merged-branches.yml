@@ -2,8 +2,8 @@ name: Delete merged branches
 
 # Same behaviour as the other OMS repos: once a PR is merged,
 # delete its head branch (except protected ones). Local copies are cleaned by
-# oms-workspace scripts/sync-repos.sh. Any merged branch goes (feat/, fix/, ci/, docs/...): a stale branch would
-# otherwise be picked up by the services' CI as a same-named oms-core branch.
+# oms-workspace scripts/sync-repos.sh. Any merged branch goes (feat/, fix/, ci/, docs/...). Release tags are not
+# branches and are never touched.
 on:
   pull_request:
     types:
