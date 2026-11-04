@@ -9,7 +9,11 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class MdcKeys {
 
-    /** One id per unit of work: HTTP request (X-Request-Id), Kafka record or SQS message. */
+    /**
+     * Correlation id of one flow: the HTTP request's X-Request-Id (or a generated UUID), carried to Kafka consumers in
+     * the {@code correlationContext} header ({@link MdcPropagation}); for a record without it, the record's
+     * {@code topic-partition-offset}; for an SQS message, its message id.
+     */
     public static final String REQUEST_ID = "requestId";
 
     public static final String MERCHANT_ID = "merchantId";

@@ -40,12 +40,15 @@ class MdcPropertiesTest {
                 "app.logging.mdc.fields.sku.format", "code",
                 "app.logging.mdc.fields.sku.sources", "path,query",
                 "app.logging.mdc.fields.merchantId.format", "uuid",
-                "app.logging.mdc.fields.merchantId.propagate", "true"));
+                "app.logging.mdc.fields.merchantId.sources", "path,query",
+                "app.logging.mdc.fields.traceId.format", "code",
+                "app.logging.mdc.fields.traceId.sources", "",
+                "app.logging.mdc.fields.traceId.propagate", "true"));
 
         assertThat(properties.getFields()).containsKeys("storeId", "productId", "sku", "merchantId");
         assertThat(properties.getFields().get("sku").getFormat()).isEqualTo(Format.CODE);
-        assertThat(properties.fieldsFrom(Source.QUERY)).containsOnlyKeys("sku");
-        assertThat(properties.propagatedKeys()).containsExactly("merchantId", "requestId");
+        assertThat(properties.fieldsFrom(Source.QUERY)).containsOnlyKeys("sku", "merchantId");
+        assertThat(properties.propagatedKeys()).containsExactly("requestId", "traceId");
     }
 
     @Test
@@ -89,16 +92,26 @@ class MdcPropertiesTest {
     }
 
     @Test
-    @DisplayName("message keys are reserved: they take propagate but never a request source")
+    @DisplayName("message keys are reserved: never a request source, never propagated")
     void reservedKeys() {
         assertThatThrownBy(() -> bind(Map.of("app.logging.mdc.fields.eventId.sources", "path")))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("eventId");
-
-        MdcProperties properties = bind(Map.of(
+        assertThatThrownBy(() -> bind(Map.of(
                 "app.logging.mdc.fields.eventId.sources", "",
-                "app.logging.mdc.fields.eventId.propagate", "true"));
-        assertThat(properties.propagatedKeys()).contains("eventId");
+                "app.logging.mdc.fields.eventId.propagate", "true")))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("only correlation keys");
+
+        MdcProperties properties = bind(Map.of("app.logging.mdc.fields.eventId.sources", ""));
+        assertThat(properties.propagatedKeys()).doesNotContain("eventId");
         assertThat(properties.fieldsFrom(Source.PATH)).doesNotContainKey("eventId");
+    }
+
+    @Test
+    @DisplayName("entity or tenant ids taken from a request cannot propagate")
+    void entityKeysCannotPropagate() {
+        assertThatThrownBy(() -> bind(Map.of("app.logging.mdc.fields.merchantId.propagate", "true")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("merchantId").hasMessageContaining("only correlation keys");
     }
 
     @Test
