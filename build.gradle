@@ -4,7 +4,8 @@ plugins {
 	id 'io.spring.dependency-management' version '1.1.4'
 }
 
-// group and version come from gradle.properties; a release passes -Pversion=<tag without v> (release.yml).
+// group and version come from gradle.properties (publish.yml releases that version from master); an rc pre-release
+// passes -Pversion=<tag without v> (release.yml).
 
 java {
 	toolchain {
@@ -71,13 +72,18 @@ test {
 	useJUnitPlatform()
 }
 
-// Published to GitHub Packages by .github/workflows/release.yml when a tag v<version> is pushed (ADR 0005).
+// Published to GitHub Packages by .github/workflows/publish.yml when master's version is not released yet, and by
+// release.yml for rc tags (ADR 0005).
 // versionMapping writes the resolved versions into the POM and the Gradle module metadata, so consumers never depend
 // on having the same BOM as oms-core to get a version for spring-web, jackson-databind, ...
 publishing {
 	publications {
 		mavenJava(MavenPublication) {
 			from components.java
+			// The commit a version was built from: publish.yml tags it when a re-run finds the version already published.
+			pom {
+				properties.put('oms.commit', System.getenv('GITHUB_SHA') ?: 'local')
+			}
 			versionMapping {
 				usage('java-api') {
 					fromResolutionOf('runtimeClasspath')
@@ -100,14 +106,14 @@ publishing {
 	}
 }
 
-// Releases only: from release.yml, with a release version. Published versions are immutable, so a publish from a
-// laptop or of a SNAPSHOT would be a mistake that cannot be undone.
+// Releases only: from publish.yml (master) or release.yml (rc tags), with a release version. Published versions are
+// immutable, so a publish from a laptop or of a SNAPSHOT would be a mistake that cannot be undone.
 def releaseVersion = project.version.toString()
 def releaseAllowed = System.getenv('GITHUB_ACTIONS') == 'true' && releaseVersion ==~ /\d+\.\d+\.\d+(-rc\.\d+)?/
 tasks.withType(PublishToMavenRepository).configureEach {
 	doFirst {
 		if (!releaseAllowed) {
-			throw new GradleException("oms-core is published only by release.yml with a release version (got '${releaseVersion}')")
+			throw new GradleException("oms-core is published only by its GitHub workflows, with a release version (got '${releaseVersion}')")
 		}
 	}
 }

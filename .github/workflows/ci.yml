@@ -1,8 +1,8 @@
 name: CI
 
 # oms-core's unit tests, plus the publication files (POM, Gradle module metadata) generated as a dry run, so a broken
-# publish configuration fails on the PR instead of at release time. Services consume a published version
-# (release.yml, ADR 0005): they pick up an oms-core change only when they bump coreVersion.
+# publish configuration fails on the PR instead of at release time. On a PR, `release-version` says what merging will
+# release: gradle.properties `version` is published by publish.yml once it is on master (ADR 0005).
 
 on:
   pull_request:
@@ -44,7 +44,11 @@ jobs:
         run: ./gradlew test --no-daemon --stacktrace
 
       - name: Generate publication files (dry run)
-        run: ./gradlew generatePomFileForMavenJavaPublication generateMetadataFileForMavenJavaPublication sourcesJar --no-daemon
+        run: |
+          ./gradlew generatePomFileForMavenJavaPublication generateMetadataFileForMavenJavaPublication sourcesJar --no-daemon
+          # publish.yml reads the build commit back from the POM when a re-run finds the version already published.
+          grep -q "<oms.commit>${GITHUB_SHA}</oms.commit>" build/publications/mavenJava/pom-default.xml \
+            || { echo "::error::POM has no <oms.commit>${GITHUB_SHA}</oms.commit>"; exit 1; }
 
       - name: Upload test reports
         if: failure()
@@ -55,3 +59,46 @@ jobs:
             build/reports/tests/
             build/test-results/
           retention-days: 7
+
+  release-version:
+    name: release-version
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: What merging this PR releases
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          read_version() { sed -n 's/^version=//p' | tr -d '[:space:]'; }
+          new=$(read_version < gradle.properties)
+          old=$(git show "$BASE:gradle.properties" | read_version)
+          if [[ ! "$new" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version '$new' must be X.Y.Z on master (rc versions come from rc tags)"; exit 1
+          fi
+          if [[ "$new" == "$old" ]]; then
+            if ! git rev-parse -q --verify "refs/tags/v$new" >/dev/null; then
+              # An earlier Publish run failed or was cancelled: the next push to master releases it.
+              msg="Merging releases oms-core $new (not released yet: no tag v$new)."
+            elif git diff --quiet "$BASE" HEAD -- src/main build.gradle; then
+              msg="No release: version stays $new and nothing published changes."
+            else
+              msg="No release: code changes but version stays $new. Bump version in gradle.properties to release it."
+              echo "::warning::$msg"
+            fi
+          else
+            if git rev-parse -q --verify "refs/tags/v$new" >/dev/null; then
+              echo "::error::v$new is already released; pick the next version"; exit 1
+            fi
+            if [[ "$(printf '%s\n%s\n' "$old" "$new" | sort -V | tail -n1)" != "$new" ]]; then
+              echo "::error::version $new is lower than $old"; exit 1
+            fi
+            msg="Merging releases oms-core $new (was $old)."
+          fi
+          echo "$msg"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,134 @@
+name: Publish
+
+# Continuous delivery of oms-core (ADR 0005). On every push to master:
+#   version = gradle.properties `version` (bumped in the PR that should release)
+#   no tag v<version> yet -> test, publish com.dotran.oms:oms-core:<version> to GitHub Packages, then tag v<version> + Release
+#   tag exists            -> check the package is there, nothing else (a merge without a version bump releases nothing)
+# Re-run a failed Publish run (keeps its commit): a version already completely on GitHub Packages (409) only gets its
+# missing tag, on the commit recorded in its POM. Services are not affected until they bump coreVersion.
+# Runs are queued one at a time; GitHub keeps only the newest pending run, so a run can show "cancelled" when merges come
+# quickly (README "Releasing").
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write    # tag + GitHub Release
+  packages: write    # publish
+
+concurrency:
+  group: publish-master
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish oms-core
+    # Only master is ever released, also when started by hand.
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Read the version
+        id: v
+        run: |
+          version=$(sed -n 's/^version=//p' gradle.properties | tr -d '[:space:]')
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::gradle.properties version '$version' is not X.Y.Z (no SNAPSHOT or -rc on master)"; exit 1
+          fi
+          # The tag is created last, after a complete publish: a tag means the version is released.
+          if git rev-parse -q --verify "refs/tags/v${version}" >/dev/null; then released=true; else released=false; fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "released=$released" >> "$GITHUB_OUTPUT"
+          echo "oms-core ${version}: already released=${released}" >> "$GITHUB_STEP_SUMMARY"
+
+      # fetch <suffix> <out-file>: download one file of this version from GitHub Packages, print the final HTTP code.
+      # Credentials go through stdin (-K -), not the command line; -L follows a redirect to the storage host.
+      - name: Package helper
+        run: |
+          cat > "$RUNNER_TEMP/fetch.sh" <<'SH'
+          base="https://maven.pkg.github.com/${GITHUB_REPOSITORY}/com/dotran/oms/oms-core/${VERSION}/oms-core-${VERSION}"
+          printf 'user = "%s:%s"\n' "$GITHUB_ACTOR" "$GITHUB_TOKEN" |
+            curl -sSL --max-time 30 -K - -o "$2" -w '%{http_code}' "${base}$1" || echo 000
+          SH
+
+      - name: Check a released version is on GitHub Packages
+        if: steps.v.outputs.released == 'true'
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          code=$(bash "$RUNNER_TEMP/fetch.sh" .pom /dev/null)
+          if [ "$code" != 200 ]; then
+            echo "::error::Tag v${VERSION} exists but oms-core-${VERSION}.pom is not on GitHub Packages (HTTP ${code}). A tag must only be created by this workflow: delete the tag and re-run, or bump version."
+            exit 1
+          fi
+          echo "oms-core ${VERSION} is already released; bump version in gradle.properties to release" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Java 17
+        if: steps.v.outputs.released == 'false'
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Validate the Gradle wrapper
+        if: steps.v.outputs.released == 'false'
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: Set up Gradle (cache)
+        if: steps.v.outputs.released == 'false'
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Test
+        if: steps.v.outputs.released == 'false'
+        run: ./gradlew test --no-daemon --stacktrace
+
+      - name: Publish to GitHub Packages
+        id: publish
+        if: steps.v.outputs.released == 'false'
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          set -o pipefail
+          if ./gradlew publish --no-daemon --stacktrace 2>&1 | tee publish.log; then
+            echo "target=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          grep -q 'status code 409' publish.log || exit 1
+          # 409 = the version is already on GitHub Packages (an earlier run published it, then its tag step failed).
+          # Tag it only if every file is there (a half-uploaded version must not be tagged, README "A release that
+          # failed half-way"), and on the commit it was built from, recorded in the POM.
+          for f in .module .jar -sources.jar; do
+            code=$(bash "$RUNNER_TEMP/fetch.sh" "$f" /dev/null)
+            if [ "$code" != 200 ]; then
+              echo "::error::oms-core ${VERSION} is on GitHub Packages but oms-core-${VERSION}${f} is missing (HTTP ${code}): delete that version in Packages or bump version"
+              exit 1
+            fi
+          done
+          code=$(bash "$RUNNER_TEMP/fetch.sh" .pom pom.xml)
+          commit=$(sed -n 's:.*<oms.commit>\([0-9a-f]\{40\}\)</oms.commit>.*:\1:p' pom.xml 2>/dev/null)
+          if [ "$code" != 200 ] || [ -z "$commit" ]; then
+            echo "::error::oms-core ${VERSION} is on GitHub Packages but its POM is missing or has no oms.commit (HTTP ${code}): tag it by hand on the right commit, or bump version"
+            exit 1
+          fi
+          echo "::notice::oms-core ${VERSION} was already published completely from ${commit}; tagging that commit"
+          echo "target=$commit" >> "$GITHUB_OUTPUT"
+
+      - name: Tag and GitHub Release
+        if: steps.v.outputs.released == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.v.outputs.version }}
+          TARGET: ${{ steps.publish.outputs.target }}
+        run: |
+          gh release create "v${VERSION}" --repo "$GITHUB_REPOSITORY" --target "$TARGET" \
+            --title "v${VERSION}" --generate-notes
+          echo "Published com.dotran.oms:oms-core:${VERSION} and tagged v${VERSION} on ${TARGET}" >> "$GITHUB_STEP_SUMMARY"
