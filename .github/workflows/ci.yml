@@ -93,6 +93,11 @@ jobs:
             fi
           else
             if git rev-parse -q --verify "refs/tags/v$new" >/dev/null; then
+              if [[ ! "$old" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                # Base predates continuous delivery (version was a SNAPSHOT): v$new was released by its tag.
+                msg="No release: v$new is already released (master moves from $old to the released $new)."
+                echo "$msg"; echo "$msg" >> "$GITHUB_STEP_SUMMARY"; exit 0
+              fi
               echo "::error::v$new is already released; pick the next version"; exit 1
             fi
             if [[ "$(printf '%s\n%s\n' "$old" "$new" | sort -V | tail -n1)" != "$new" ]]; then
