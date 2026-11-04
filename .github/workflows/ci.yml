@@ -1,9 +1,8 @@
 name: CI
 
-# 1. oms-core's own unit tests (a service's `./gradlew test` does not run them: they are an included build).
-# 2. Downstream: stores-service and inventory-service built and tested against THIS oms-core, so a breaking
-#    change shows up here, before merge. Each service uses the branch with the same name as this PR's branch if it
-#    has one (cross-repo changes: name the branches the same), else develop.
+# oms-core's unit tests, plus the publication files (POM, Gradle module metadata) generated as a dry run, so a broken
+# publish configuration fails on the PR instead of at release time. Services consume a published version
+# (release.yml, ADR 0005): they pick up an oms-core change only when they bump coreVersion.
 
 on:
   pull_request:
@@ -44,6 +43,9 @@ jobs:
       - name: Test
         run: ./gradlew test --no-daemon --stacktrace
 
+      - name: Generate publication files (dry run)
+        run: ./gradlew generatePomFileForMavenJavaPublication generateMetadataFileForMavenJavaPublication sourcesJar --no-daemon
+
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v7
@@ -52,74 +54,4 @@ jobs:
           path: |
             build/reports/tests/
             build/test-results/
-          retention-days: 7
-
-  downstream:
-    name: ${{ matrix.service }} against this oms-core
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        service: [stores-service, inventory-service]
-    steps:
-      - name: Check out oms-core
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-          path: oms-core
-
-      - name: Pick the ${{ matrix.service }} ref
-        id: svc
-        env:
-          SERVICE: ${{ matrix.service }}
-          BRANCH: ${{ github.head_ref || (github.event_name == 'workflow_dispatch' && github.ref_name || '') }}
-        run: |
-          ref=develop
-          if [[ -n "${BRANCH:-}" ]]; then
-            set +e
-            git ls-remote --exit-code "https://github.com/domt97/${SERVICE}.git" "refs/heads/$BRANCH" >/dev/null
-            rc=$?
-            set -e
-            case $rc in
-              0) ref="$BRANCH" ;;
-              2) ;;  # no service branch with that name
-              *) echo "::error::Could not list ${SERVICE} branches (git exit $rc)"; exit 1 ;;
-            esac
-          fi
-          echo "ref=$ref" >> "$GITHUB_OUTPUT"
-          echo "${SERVICE} @ ${ref}" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Check out ${{ matrix.service }} (composite build sibling)
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-          repository: domt97/${{ matrix.service }}
-          ref: ${{ steps.svc.outputs.ref }}
-          path: ${{ matrix.service }}
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Validate the Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v6
-
-      - name: Set up Gradle (cache)
-        uses: gradle/actions/setup-gradle@v6
-
-      - name: Test
-        working-directory: ${{ matrix.service }}
-        run: ./gradlew test --no-daemon --stacktrace
-
-      - name: Upload test reports
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.service }}-test-reports
-          path: |
-            ${{ matrix.service }}/build/reports/tests/
-            ${{ matrix.service }}/build/test-results/
           retention-days: 7
