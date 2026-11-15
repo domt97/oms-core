@@ -5,11 +5,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.data.domain.Page;
 
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * One page of results, framework-free (the domain has no Spring imports). Adapters build it from their own paging type,
+ * e.g. {@code PageUtils.toPagedResult(Page)} for Spring Data.
+ */
 @Getter
 @Setter
 @Builder
@@ -23,48 +26,6 @@ public class PagedResult<T> {
     private long totalElements;
     private int totalPages;
     private boolean isLast;
-
-    /**
-     * Converts a Spring Data Page to PagedResult with content transformation.
-     *
-     * @param page      the source page
-     * @param converter the function to convert each element from type S to type T
-     * @param <S>       source type
-     * @param <T>       target type
-     * @return PagedResult with converted content
-     */
-    public static <S, T> PagedResult<T> of(Page<S> page, Function<S, T> converter) {
-        List<T> convertedContent = page.getContent().stream()
-                .map(converter)
-                .toList();
-
-        return PagedResult.<T>builder()
-                .content(convertedContent)
-                .pageNumber(page.getNumber())
-                .pageSize(page.getSize())
-                .totalElements(page.getTotalElements())
-                .totalPages(page.getTotalPages())
-                .isLast(page.isLast())
-                .build();
-    }
-
-    /**
-     * Converts a Spring Data Page to PagedResult without transformation.
-     *
-     * @param page the source page
-     * @param <T>  content type
-     * @return PagedResult with same content type
-     */
-    public static <T> PagedResult<T> of(Page<T> page) {
-        return PagedResult.<T>builder()
-                .content(page.getContent())
-                .pageNumber(page.getNumber())
-                .pageSize(page.getSize())
-                .totalElements(page.getTotalElements())
-                .totalPages(page.getTotalPages())
-                .isLast(page.isLast())
-                .build();
-    }
 
     /**
      * Converts this PagedResult's content to a different type using the provided converter function.

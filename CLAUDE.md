@@ -26,6 +26,10 @@ A type belongs in oms-core only when **more than one context** needs the same th
 rule 6 in the workspace). Otherwise it stays in the owning service. Event DTOs never go here: each consumer keeps its
 own copy in `infrastructure/message/dto` and the contract is the JSON Schema in `oms-workspace/architecture/contracts/`.
 
+`domain` stays framework-free: no Spring, Hibernate or `jakarta.*` / `javax.persistence` API (Lombok and Jackson
+annotations on typed ids are allowed). Spring
+bridges go in `util` (e.g. `PageUtils.toPagedResult`, `toPageRequest`). `DomainHasNoFrameworkImportsTest` enforces it.
+
 ## Every change is a release decision
 
 **The `version` in `gradle.properties` is what `master` releases.** A merge into `master` with a bumped `version`
