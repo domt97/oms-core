@@ -26,6 +26,10 @@ A type belongs in oms-core only when **more than one context** needs the same th
 rule 6 in the workspace). Otherwise it stays in the owning service. Event DTOs never go here: each consumer keeps its
 own copy in `infrastructure/message/dto` and the contract is the JSON Schema in `oms-workspace/architecture/contracts/`.
 
+`domain` stays framework-free: no Spring, Hibernate or `jakarta.*` / `javax.persistence` API (Lombok and Jackson
+annotations on typed ids are allowed). Spring
+bridges go in `util` (e.g. `PageUtils.toPagedResult`, `toPageRequest`). `DomainHasNoFrameworkImportsTest` enforces it.
+
 ## Every change is a release decision
 
 **The `version` in `gradle.properties` is what `master` releases.** A merge into `master` with a bumped `version`
@@ -37,6 +41,8 @@ publishes it to GitHub Packages and tags it (`publish.yml`); a published version
 - Services are not affected until they bump `coreVersion`, but a local service build uses `../oms-core` as it is on
   disk (composite build). So a local green build of a service does not prove it works with the pinned version.
 - Docs-only changes (this file, `README.md`) need no bump.
+- **Unreleased on master:** `PagedResult.of(Page…)` was removed (replacement: `PageUtils.toPagedResult(Page)`), so the
+  next release is **MAJOR (2.0.0)**. Delete this line when 2.0.0 is released.
 
 ## Rules for Claude
 
