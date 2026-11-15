@@ -1,7 +1,8 @@
 # oms-core
 
 Shared kernel of the OMS: typed ids, `AggregateRoot`, `Money`/`Address`, exceptions and `GlobalExceptionHandler`,
-`@UseCase`/`@WebAdapter`/`@PersistenceAdapter`, MDC logging (`com.dotran.oms.core.logging`), S3, Excel import template.
+`@UseCase`/`@WebAdapter`/`@PersistenceAdapter`, MDC logging (`com.dotran.oms.core.logging`), `X-Request-Id` on outbound
+HTTP (`rest.client`), the outbox payload decoder (`message`), S3, Excel import template.
 Architecture and rules: [oms-workspace](https://github.com/domt97/oms-workspace) (ADR 0005 for versioning).
 
 ## How services use it

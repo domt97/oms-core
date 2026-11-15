@@ -28,7 +28,7 @@ dependencies {
 
 	api 'org.apache.commons:commons-lang3:3.18.0'
 
-	// JSON for the correlation header (MdcPropagation); version from the Boot BOM
+	// JSON: correlation header (MdcPropagation), outbox payload decoder, ErrorResponse; version from the Boot BOM
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 
 	// Spring
