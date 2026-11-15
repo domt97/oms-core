@@ -70,10 +70,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ErrorResponse businessException(BusinessException ex, HttpServletRequest request) {
         this.logError(ex);
 
+        return errorResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex, request);
+    }
+
+    /**
+     * The error body for {@code ex} with this status: its message, and its {@link BusinessException#getCode() code} when
+     * it has one. For service handlers that answer a coded business error with another status (e.g. 409).
+     */
+    protected ErrorResponse errorResponse(HttpStatus status, Exception ex, HttpServletRequest request) {
         return ErrorResponse.builder()
                 .error(ex.getMessage())
+                .code(ex instanceof BusinessException business ? business.getCode() : null)
                 .timestamp(Instant.now())
-                .status(HttpStatus.UNPROCESSABLE_ENTITY.value())
+                .status(status.value())
                 .path(request.getRequestURI())
                 .build();
     }

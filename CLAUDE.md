@@ -14,7 +14,9 @@ endpoints, no business rules of one context. Packages under `com.dotran.oms.core
 | `domain` (`id`, `page`) | `AggregateRoot`, `BaseDomain`, typed ids, paging types |
 | `valueobject` | `Money`, `Address`, `PriceRange` |
 | `annotation` | `@UseCase`, `@WebAdapter`, `@PersistenceAdapter`, `@JobAdapter` |
-| `exception`, `rest` | `BusinessException`, `NotFoundException`, `ValidationException`…; `GlobalExceptionHandler`, `ErrorResponse`, request logging |
+| `exception`, `rest` | `BusinessException` (optional machine-readable `code`, `withCode`), `NotFoundException`, `ValidationException`…; `GlobalExceptionHandler` (+ `errorResponse(...)` for service handlers), `ErrorResponse` (`code` only when set), request logging |
+| `rest.client` | `RequestIdClientInterceptor` + `RequestIdClientConfig`: `X-Request-Id` on every injected `RestClient.Builder` in services that scan `com.dotran.oms` (off with `app.http-client.propagate-request-id=false`; third-party clients use `RestClient.builder()`) |
+| `message` | `OutboxPayloadDecoder` (Debezium's double-encoded outbox payload; not a bean, services declare it) |
 | `logging` | MDC: `MdcKeys`, `MdcProperties`, `MdcScope`, `MdcPropagation`, `LogSanitizer` |
 | `cloud` | AWS config and S3 |
 | `io` | Excel reading and the import template |
