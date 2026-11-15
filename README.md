@@ -55,6 +55,9 @@ repository owner and refuses an rc for a version that is already released.
 | **MINOR** | New API or config with safe defaults |
 | **PATCH** | Fixes only, no API change |
 
+Exception: **1.1.0** removed `PagedResult.of(Page…)` (replacement `PageUtils.toPagedResult(Page)`) without a MAJOR
+bump, by the owner's decision; no service used it by then except stores-service, which moved in the same change.
+
 oms-core has one line of development (`master`); there are no backport branches.
 
 ### A release that failed half-way

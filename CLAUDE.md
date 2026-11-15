@@ -41,8 +41,6 @@ publishes it to GitHub Packages and tags it (`publish.yml`); a published version
 - Services are not affected until they bump `coreVersion`, but a local service build uses `../oms-core` as it is on
   disk (composite build). So a local green build of a service does not prove it works with the pinned version.
 - Docs-only changes (this file, `README.md`) need no bump.
-- **Unreleased on master:** `PagedResult.of(Page…)` was removed (replacement: `PageUtils.toPagedResult(Page)`), so the
-  next release is **MAJOR (2.0.0)**. Delete this line when 2.0.0 is released.
 
 ## Rules for Claude
 
