@@ -7,7 +7,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 /** Bridge between the framework-free paging types in {@code domain.page} and Spring Data. */
 @UtilityClass
@@ -32,11 +34,27 @@ public class PageUtils {
 
     /**
      * Spring Data page → {@link PagedResult} (content and paging values as Spring computed them). To convert the
-     * elements too, map the page first: {@code toPagedResult(page.map(mapper::toDomain))}.
+     * elements too, use {@link #toPagedResult(Page, Function)}.
      */
     public static <T> PagedResult<T> toPagedResult(Page<T> page) {
         return PagedResult.<T>builder()
                 .content(page.getContent())
+                .pageNumber(page.getNumber())
+                .pageSize(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .isLast(page.isLast())
+                .build();
+    }
+
+    /**
+     * Spring Data page → {@link PagedResult}, converting each element in order with {@code converter} (e.g. entity →
+     * domain). The paging values are Spring's, unchanged.
+     */
+    public static <S, T> PagedResult<T> toPagedResult(Page<S> page, Function<? super S, ? extends T> converter) {
+        List<T> content = page.getContent().stream().<T>map(converter).toList();
+        return PagedResult.<T>builder()
+                .content(content)
                 .pageNumber(page.getNumber())
                 .pageSize(page.getSize())
                 .totalElements(page.getTotalElements())

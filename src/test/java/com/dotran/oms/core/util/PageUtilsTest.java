@@ -34,6 +34,32 @@ class PageUtilsTest {
     }
 
     @Test
+    @DisplayName("toPagedResult with a converter: converts every element in order and keeps every paging value")
+    void middlePage_withConverter() {
+        List<String> seen = new java.util.ArrayList<>();
+        PagedResult<Integer> r = PageUtils.toPagedResult(new PageImpl<>(List.of("bb", "a", "ccc"), PageRequest.of(1, 20), 61),
+                s -> {
+                    seen.add(s);
+                    return s.length();
+                });
+
+        assertThat(r.getContent()).containsExactly(2, 1, 3);
+        assertThat(seen).as("each element converted once, in order").containsExactly("bb", "a", "ccc");
+        assertPaging(r, 1, 20, 61, 4, false);
+    }
+
+    @Test
+    @DisplayName("toPagedResult with a converter: an empty page never calls the converter")
+    void emptyPage_withConverter() {
+        PagedResult<Integer> r = PageUtils.toPagedResult(new PageImpl<String>(List.of(), PageRequest.of(0, 20), 0), s -> {
+            throw new AssertionError("converter must not be called");
+        });
+
+        assertThat(r.getContent()).isEmpty();
+        assertPaging(r, 0, 20, 0, 0, true);
+    }
+
+    @Test
     @DisplayName("toPagedResult: the last page is marked last")
     void lastPage() {
         assertPaging(PageUtils.toPagedResult(new PageImpl<>(List.of("x"), PageRequest.of(3, 20), 61)), 3, 20, 61, 4, true);
